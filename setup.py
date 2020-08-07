@@ -5,7 +5,7 @@ with open("README.md", "r") as readme_file:
 
 setup(
     name="strbalance",
-    version="0.1",
+    version="0.2",
     author="Tamila Krashtan",
     author_email="tamila.krashtan@gmail.com",
     description="A package to check whether a string is balanced",
