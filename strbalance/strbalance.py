@@ -11,7 +11,7 @@ The module exports:
 """
 
 from balance import Balance
-__version__ = '0.1'
+__version__ = '0.1.1'
 
 
 def is_unbalanced(string, pairs=None, symmetrical=None, tags=False, ignore_case=False, cjk=False, straight=False,
