@@ -10,8 +10,8 @@ The module exports:
                             the string to check and the parameters for Balance constructor.
 """
 
-from balance import Balance
-__version__ = '0.2'
+from .balance import Balance
+__version__ = '0.2.1'
 
 
 def is_unbalanced(string, pairs=None, symmetrical=None, tags=False, ignore_case=False, cjk=False, straight=False,
