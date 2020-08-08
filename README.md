@@ -18,8 +18,8 @@ If the punctuation in the string is not balanced, the result is an Unbalanced ob
 import strbalance
 
 balance = strbalance.Balance()
-balance.is_unbalanced('{[]}[()]')  # returns None
-balance.is_unbalanced('abc(def"gh"ijkl)')  # returns None
+print(balance.is_unbalanced('{[]}[()]'))  # outputs None
+print(balance.is_unbalanced('abc(def"gh"ijkl)'))  # outputs None
 
 unbalanced = balance.is_unbalanced('abcdefgh(ijkl]mnopqrst')
 print(unbalanced.unclosed, unbalanced.short_summary, 
