@@ -1,4 +1,4 @@
-from .unbalanced import Unbalanced
+from strbalance.unbalanced import Unbalanced
 
 
 class Balance:
@@ -78,14 +78,14 @@ class Balance:
 
     def _closing_tag_processing(self, position):
         if self._string[position + 2] not in self.LATIN_LETTERS:
-            return Unbalanced(self._string, 1, position)  # Incomplete tag (not tag name)
+            return True, Unbalanced(self._string, 1, position)  # Incomplete tag (not tag name)
         for i in range(position + 3, len(self._string)):  # Iterating through the tag name
             if self._string[i] not in self.LATIN_LETTERS:
                 if self._string[i] == self.TAG_END:
                     if not self._punctuation_stack:
-                        return Unbalanced(self._string, 0, 0, i - position + 1, position)
+                        return True, Unbalanced(self._string, 0, 0, i - position + 1, position)
                     if self._punctuation_stack[-1][2] != self.PUNCTUATION_TYPES['opened-tag']:
-                        return Unbalanced(self._string,
+                        return True, Unbalanced(self._string,
                                           len(self._punctuation_stack[-1][0]), self._punctuation_stack[-1][1],
                                           i - position + 1, position)
 
@@ -96,72 +96,73 @@ class Balance:
                         tag_closing = tag_closing.lower()
                     if tag_opening == tag_closing:
                         self._punctuation_stack = self._punctuation_stack[:-1]
-                        return self._iteration_on_string(i + 1)
+                        return False, i + 1
                     else:
-                        return Unbalanced(self._string,
+                        return True, Unbalanced(self._string,
                                           len(self._punctuation_stack[-1][0]), self._punctuation_stack[-1][1],
                                           i - position + 1, position)
                 else:
-                    return Unbalanced(self._string, 1, position)  # Incomplete tag
+                    return True, Unbalanced(self._string, 1, position)  # Incomplete tag
 
-        return Unbalanced(self._string, len(self._string) - position, position)  # Incomplete tag (no TAG_END)
+        return True, Unbalanced(self._string, len(self._string) - position, position)  # Incomplete tag (no TAG_END)
 
     def _tags_iteration(self, position):
         if self._string[position] == self.TAG_BEGIN:
             if self._punctuation_stack and self._punctuation_stack[-1][-1] == self.PUNCTUATION_TYPES['incomplete-tag']:
-                return Unbalanced(self._string, len(self._punctuation_stack[-1][0]), self._punctuation_stack[-1][1])
+                return True, Unbalanced(self._string, len(self._punctuation_stack[-1][0]), self._punctuation_stack[-1][1])
             if self._string[position + 1] == self.TAG_CLOSE:
                 return self._closing_tag_processing(position)
             elif self._string[position + 1] not in self.LATIN_LETTERS:
-                return Unbalanced(self._string, 1, position)  # Incomplete tag
+                return True, Unbalanced(self._string, 1, position)  # Incomplete tag
             else:
                 for i in range(position + 2, len(self._string)):  # Iterating through the tag name
                     if self._string[i] not in self.LATIN_LETTERS:
                         self._punctuation_stack.append([self._string[position:i], position,
                                                         self.PUNCTUATION_TYPES['incomplete-tag']])
-                        return self._iteration_on_string(i)
-                return Unbalanced(self._string, 1, position)  # Incomplete tag
+                        return False, i
+                return True, Unbalanced(self._string, 1, position)  # Incomplete tag
 
         elif self._string[position] == self.TAG_END:
             if not self._punctuation_stack:
-                return Unbalanced(self._string, 0, 0, 1, position)
+                return True, Unbalanced(self._string, 0, 0, 1, position)
 
             last_punctuation = self._punctuation_stack[-1]
             if last_punctuation[2] == self.PUNCTUATION_TYPES['incomplete-tag']:
                 if self._string[position - 1] == self.TAG_CLOSE:  # Self-closing tag, e.g. <something/>
                     self._punctuation_stack = self._punctuation_stack[:-1]
-                    return self._iteration_on_string(position + 1)
+                    return False, position + 1
                 else:
                     if last_punctuation[0][1:].lower() in self.UNPAIRED_TAGS:
                         self._punctuation_stack = self._punctuation_stack[:-1]
-                        return self._iteration_on_string(position + 1)
+                        return False, position + 1
                     else:
                         self._punctuation_stack[-1] = [last_punctuation[0] + self.TAG_END, last_punctuation[1],
                                                        self.PUNCTUATION_TYPES['opened-tag']]
-                        return self._iteration_on_string(position + 1)
+                        return False, position + 1
             else:
-                return Unbalanced(self._string, len(self._punctuation_stack[-1][0]), self._punctuation_stack[-1][1],
-                                  1, position)
+                return True, Unbalanced(self._string, len(self._punctuation_stack[-1][0]),
+                                        self._punctuation_stack[-1][1], 1, position)
 
-        return self._iteration_on_string(position + 1)  # Not tags found
+        return False, position + 1  # Not tags found
 
     def _iteration_on_string(self, position):
         if position >= len(self._string):  # String ended
             if not self._punctuation_stack:
-                return None
+                return True, None
             else:
-                return Unbalanced(self._string, len(self._punctuation_stack[-1][0]), self._punctuation_stack[-1][1])
+                return True, Unbalanced(self._string, len(self._punctuation_stack[-1][0]),
+                                        self._punctuation_stack[-1][1])
 
         for closing in self._closings:
             if self._string[position:position + len(closing)] == closing:
                 if self._punctuation_stack:
                     if [self._punctuation_stack[-1][0], closing] in self._pairs:
                         self._punctuation_stack = self._punctuation_stack[:-1]
-                        return self._iteration_on_string(position + len(closing))
+                        return False, position + len(closing)
                     else:
-                        return Unbalanced(self._string, len(self._punctuation_stack[-1][0]),
+                        return True, Unbalanced(self._string, len(self._punctuation_stack[-1][0]),
                                           self._punctuation_stack[-1][1], len(closing), position)
-                return Unbalanced(self._string, 0, 0, len(closing), position)   # empty stack
+                return True, Unbalanced(self._string, 0, 0, len(closing), position)   # empty stack
 
         for symmetrical in self._symmetrical:
             if self._string[position:position + len(symmetrical)] == symmetrical:
@@ -169,17 +170,17 @@ class Balance:
                     self._punctuation_stack = self._punctuation_stack[:-1]
                 else:
                     self._punctuation_stack.append([symmetrical, position, self.PUNCTUATION_TYPES['non-tag']])
-                return self._iteration_on_string(position + len(symmetrical))
+                return False, position + len(symmetrical)
 
         for opening in self._openings:
             if self._string[position:position + len(opening)] == opening:
                 self._punctuation_stack.append([opening, position, self.PUNCTUATION_TYPES['non-tag']])
-                return self._iteration_on_string(position + len(opening))
+                return False, position + len(opening)
 
         if self._tags:
             return self._tags_iteration(position)
 
-        return self._iteration_on_string(position + 1)
+        return False, position + 1
 
     def is_unbalanced(self, string):
         """Check if the string is balanced and return None or an Unbalanced object."""
@@ -189,7 +190,12 @@ class Balance:
         self._string = string
         self._punctuation_stack = []
 
-        return self._iteration_on_string(0)
+        finished, intermediate_result = self._iteration_on_string(0)
+
+        while not finished:
+            finished, intermediate_result = self._iteration_on_string(intermediate_result)
+
+        return intermediate_result
 
     def _compile_punctuation_lists(self, pairs, symmetrical, cjk, straight, custom, german, math):
         self._pairs = []
@@ -239,14 +245,3 @@ class Balance:
         for opening in self._openings:
             if opening in self._closings:
                 raise ValueError('{} found both as opening and as closing sequence'.format(opening))
-
-
-if __name__ == '__main__':
-    import strbalance
-
-    balance = strbalance.Balance()
-    unbalanced = balance.is_unbalanced('abcdefgh(ijkl]mnopqrst')
-    print(unbalanced.unclosed, unbalanced.short_summary,
-          unbalanced.long_summary)  # outputs ( ...{}}(()[... ...{}}(()[]]""[...
-    print(unbalanced.opening_position, unbalanced.opening_length,
-          unbalanced.closing_position, unbalanced.closing_length)  # outputs 7 1 12 1
